@@ -1,4 +1,4 @@
-package com.tobias.kposhserver.commandline.commands
+package com.tobias.kposhserver.commandline.commands.agent
 
 import com.tobias.kposhserver.commandline.KPoshCli
 import com.tobias.kposhserver.server.Agent
@@ -6,7 +6,7 @@ import picocli.CommandLine
 
 @CommandLine.Command(
     name = "agent",
-    description = ["Configure and configure agents"],
+    description = ["Agent administration"],
     subcommands = [AgentSelect::class, AgentList::class]
 )
 class Agent: Runnable {

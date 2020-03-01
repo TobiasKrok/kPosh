@@ -1,4 +1,4 @@
-package com.tobias.kposhserver.commandline.commands
+package com.tobias.kposhserver.commandline.commands.agent
 
 import picocli.CommandLine
 
@@ -12,7 +12,7 @@ class AgentList : Runnable{
     val parent : Agent? = null
     override fun run() {
         println("Agents")
-        println("-------------------------")
+        println("-------------")
         for((key, value) in parent?.agents().orEmpty()) {
             println("Agent $key")
         }

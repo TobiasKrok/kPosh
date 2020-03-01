@@ -7,8 +7,6 @@ import org.fusesource.jansi.AnsiConsole
 import org.jline.builtins.Builtins
 import org.jline.builtins.Completers
 import org.jline.builtins.Options
-import org.jline.builtins.Widgets.TailTipWidgets
-import org.jline.builtins.Widgets.TailTipWidgets.TipType
 import org.jline.reader.*
 import org.jline.reader.impl.DefaultParser
 import org.jline.reader.impl.LineReaderImpl
@@ -21,18 +19,20 @@ import picocli.shell.jline3.PicocliCommands
 import java.io.PrintWriter
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.security.Key
-import java.util.*
-import kotlin.collections.HashMap
 
 
-@CommandLine.Command (name = "",description = ["KPosh CLI", "Subcommands: agent"] ,subcommands = [com.tobias.kposhserver.commandline.commands.Agent::class])
+@CommandLine.Command(
+        name = "",
+        description = ["KPosh CLI"],
+        subcommands = [com.tobias.kposhserver.commandline.commands.agent.Agent::class, com.tobias.kposhserver.commandline.commands.session.Session::class])
 
-class KPoshCli(private val server : Server, private val agentWorker : AgentWorker) : Runnable {
-    lateinit var reader: LineReaderImpl
+class KPoshCli(private val server: Server, private val agentWorker: AgentWorker) : Runnable {
+    private lateinit var reader: LineReaderImpl
     lateinit var out: PrintWriter
+    private var inSession = false
+    private lateinit var selectedAgents: ArrayList<Agent>
 
-    fun setReader(reader: LineReader) {
+    private fun setReader(reader: LineReader) {
         this.reader = reader as LineReaderImpl
         this.out = reader.terminal.writer()
     }
@@ -40,6 +40,84 @@ class KPoshCli(private val server : Server, private val agentWorker : AgentWorke
     override fun run() {
         out.println(CommandLine(this).usageMessage)
     }
+
     // Return agent map
-    fun agents() : HashMap<Int, Agent> = server.agents
+    fun agents(): HashMap<Int, Agent> = server.agents
+
+    // If we are in session, all commands entered will be passed to agentWorker to be sent to the remote agent.
+    fun inSession(inSession: Boolean, agents: List<Agent>) {
+        this.inSession = inSession
+        if (inSession) {
+            selectedAgents = agents as ArrayList<Agent>
+        } else {
+            selectedAgents.clear()
+        }
+        println("YEEEEEES")
+    }
+
+    public fun startCli() {
+        AnsiConsole.systemInstall();
+        try { // set up JLine built-in commands
+            val workDir: Path = Paths.get("")
+            val builtins = Builtins(workDir, null, null)
+            val systemCompleter: Completers.SystemCompleter = builtins.compileCompleters()
+            // set up picocli commands
+            // Pass server and worker object so commandline can interact
+            val commands = KPoshCli(server, agentWorker)
+            val cmd = CommandLine(commands)
+            val picocliCommands = PicocliCommands(workDir, cmd)
+            systemCompleter.add(picocliCommands.compileCompleters())
+            systemCompleter.compile()
+            val terminal: Terminal = TerminalBuilder.builder().build()
+            val reader: LineReader = LineReaderBuilder.builder()
+                    .terminal(terminal)
+                    .completer(systemCompleter)
+                    .parser(DefaultParser())
+                    .variable(LineReader.LIST_MAX, 50) // max tab completion candidates
+                    .build()
+            builtins.setLineReader(reader)
+            commands.setReader(reader)
+            var prompt = "$>"
+            val rightPrompt: String? = null
+            // start the shell and process input until the user quits with Ctl-D
+            var line: String
+            while (true) {
+                try {
+                    line = reader.readLine(prompt, rightPrompt, null as MaskingCallback?, null)
+                    if (line.matches(Regex("^\\s*#.*"))) {
+                        continue
+                    }
+                    val pl: ParsedLine = reader.parser.parse(line, 0)
+                    val arguments: Array<String> = pl.words().toTypedArray()
+                    val command: String = Parser.getCommand(pl.word())
+                    if (inSession) {
+                        println("NOOOO")
+                        prompt = "AGENT[${selectedAgents.joinToString(",")}]>"
+                        for (agent: Agent in selectedAgents) {
+                            agentWorker.process(arguments.joinToString(" "), agent)
+                        }
+                    } else if (builtins.hasCommand(command)) {
+                        builtins.execute(
+                                command, arguments.copyOfRange(1, arguments.size)
+                                , System.`in`, System.out, System.err
+                        )
+                    } else {
+                        CommandLine(commands).execute(*arguments)
+                    }
+
+                } catch (e: Options.HelpException) {
+                    Options.HelpException.highlight(e.message, Options.HelpException.defaultStyle()).print(terminal)
+                } catch (e: UserInterruptException) { // Ignore
+                } catch (e: EndOfFileException) {
+                    return
+                } catch (e: Exception) {
+                    val asb = AttributedStringBuilder()
+                    asb.append(e.message, AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
+                    asb.toAttributedString().println(terminal)
+                }
+            }
+        } catch (t: Throwable) {
+            t.printStackTrace()
+        }
+    }
 }
