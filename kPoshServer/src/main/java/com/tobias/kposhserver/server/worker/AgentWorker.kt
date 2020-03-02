@@ -12,19 +12,24 @@ class AgentWorker(private val queue: BlockingQueue<Command>) : Runnable {
     fun process(cmd: String, agent: Agent) {
         queue.put(parseCommand(cmd, agent))
     }
+    @Synchronized
+    fun process(cmd : Command) {
+        queue.put(cmd)
+    }
 
     override fun run() {
         while (!Thread.interrupted()) {
             handleCommand(queue.take())
+
         }
     }
 
     private fun handleCommand(command: Command) {
+
         when (command.commandType) {
-            CommandType.RESPONSE_POWERSHELL -> println("Agent ${command.agent.id} POSH: ${command.cmd}")
-            CommandType.RESPONSE_AGENT -> println("Agent ${command.agent.id} AGT: ${command.cmd}")
+            CommandType.RESPONSE_POWERSHELL -> println("\nAgent ${command.agent.id} POSH_RES: ${command.cmd}")
+            CommandType.RESPONSE_AGENT -> println("\nAgent ${command.agent.id} RES: ${command.cmd}")
             CommandType.CALL_AGENT -> command.agent.write(command)
-            CommandType.CALL_POWERSHELL -> command.agent.write(command)
             else -> {
                 println("Unknown command")
             }
@@ -33,6 +38,7 @@ class AgentWorker(private val queue: BlockingQueue<Command>) : Runnable {
 
 
     private fun parseCommand(cmd: String, agent: Agent): Command {
+
         var cmdType = CommandType.UNKNOWN
         var data = ""
         try {

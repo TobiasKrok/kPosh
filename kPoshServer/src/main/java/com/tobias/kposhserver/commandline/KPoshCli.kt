@@ -2,6 +2,8 @@ package com.tobias.kposhserver.commandline
 
 import com.tobias.kposhserver.server.Agent
 import com.tobias.kposhserver.server.Server
+import com.tobias.kposhserver.server.command.Command
+import com.tobias.kposhserver.server.command.CommandType
 import com.tobias.kposhserver.server.worker.AgentWorker
 import org.fusesource.jansi.AnsiConsole
 import org.jline.builtins.Builtins
@@ -47,12 +49,12 @@ class KPoshCli(private val server: Server, private val agentWorker: AgentWorker)
     // If we are in session, all commands entered will be passed to agentWorker to be sent to the remote agent.
     fun inSession(inSession: Boolean, agents: List<Agent>) {
         this.inSession = inSession
-        if (inSession) {
+        if (this.inSession) {
             selectedAgents = agents as ArrayList<Agent>
         } else {
             selectedAgents.clear()
         }
-        println("YEEEEEES")
+
     }
 
     public fun startCli() {
@@ -63,7 +65,7 @@ class KPoshCli(private val server: Server, private val agentWorker: AgentWorker)
             val systemCompleter: Completers.SystemCompleter = builtins.compileCompleters()
             // set up picocli commands
             // Pass server and worker object so commandline can interact
-            val commands = KPoshCli(server, agentWorker)
+            val commands = this
             val cmd = CommandLine(commands)
             val picocliCommands = PicocliCommands(workDir, cmd)
             systemCompleter.add(picocliCommands.compileCompleters())
@@ -91,10 +93,9 @@ class KPoshCli(private val server: Server, private val agentWorker: AgentWorker)
                     val arguments: Array<String> = pl.words().toTypedArray()
                     val command: String = Parser.getCommand(pl.word())
                     if (inSession) {
-                        println("NOOOO")
-                        prompt = "AGENT[${selectedAgents.joinToString(",")}]>"
+                        prompt = "AGENT[${selectedAgents.map { it.id }.joinToString(",")}]>"
                         for (agent: Agent in selectedAgents) {
-                            agentWorker.process(arguments.joinToString(" "), agent)
+                            agentWorker.process(Command(arguments.joinToString(" "), agent,CommandType.CALL_AGENT))
                         }
                     } else if (builtins.hasCommand(command)) {
                         builtins.execute(

