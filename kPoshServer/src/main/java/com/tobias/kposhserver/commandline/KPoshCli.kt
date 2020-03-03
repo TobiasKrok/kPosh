@@ -26,7 +26,8 @@ import java.nio.file.Paths
 @CommandLine.Command(
         name = "",
         description = ["KPosh CLI"],
-        subcommands = [com.tobias.kposhserver.commandline.commands.agent.Agent::class, com.tobias.kposhserver.commandline.commands.session.Session::class])
+        subcommands = [com.tobias.kposhserver.commandline.commands.agent.Agent::class,
+            com.tobias.kposhserver.commandline.commands.session.Session::class])
 
 class KPoshCli(private val server: Server, private val agentWorker: AgentWorker) : Runnable {
     private lateinit var reader: LineReaderImpl

