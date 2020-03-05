@@ -12,6 +12,7 @@ class PowerShellWorker(private val agent : Agent) : Runnable{
     private val queue = LinkedList<Command>()
     private var ps : PowerShell = PowerShell.openSession()
 
+
     override fun run() {
         while (!Thread.interrupted()) {
             while (queue.isEmpty()) {
@@ -28,12 +29,12 @@ class PowerShellWorker(private val agent : Agent) : Runnable{
         queue.add(parseCommand(cmd))
 
     }
-    private fun executePowerShell(command: Command) : Array<String> {
+    private fun executePowerShell(command: Command) : String {
         return try {
             val response : PowerShellResponse = ps.executeCommand(command.cmd)
-            response.commandOutput.split("\n").toTypedArray()
+            response.commandOutput
         } catch (ex : PowerShellNotAvailableException) {
-            arrayOf("NO_PSH: $ex")
+            "NO_PSH: $ex"
         }
     }
 
@@ -41,7 +42,8 @@ class PowerShellWorker(private val agent : Agent) : Runnable{
 
         return when(command.cmd.startsWith("!")) {
             true -> Command(handleAgentCommand(command),CommandType.RESPONSE_AGENT)
-            false -> Command(executePowerShell(command).joinToString(",","[","]"), CommandType.RESPONSE_POWERSHELL)
+            false -> Command(executePowerShell(command), CommandType.RESPONSE_POWERSHELL)
+            //.joinToString(",","[","]")
         }
     }
     private fun handleAgentCommand(command: Command) : String {
