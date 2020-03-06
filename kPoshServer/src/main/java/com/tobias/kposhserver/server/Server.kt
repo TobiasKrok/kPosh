@@ -7,7 +7,7 @@ import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 
 
-class Server(val port: Int) : Runnable {
+class Server(private val port: Int) : Runnable {
     val agents : HashMap<Int, Agent> = HashMap();
     private val queue : BlockingQueue<Command> = LinkedBlockingQueue<Command>()
     val worker : AgentWorker = AgentWorker(queue)

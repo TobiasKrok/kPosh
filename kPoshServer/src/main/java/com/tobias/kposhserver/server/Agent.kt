@@ -34,7 +34,7 @@ class Agent(socket: Socket, val id: Int, private val worker : AgentWorker) {
      fun read() : String {
         return reader.readLine()
     }
-    public fun write(command: Command) {
+    fun write(command: Command) {
         writer.write(command.toString())
         writer.newLine()
         writer.flush()
