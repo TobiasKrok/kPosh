@@ -2,17 +2,14 @@ package com.tobias.kposhserver.server
 
 import com.tobias.kposhserver.server.command.Command
 import com.tobias.kposhserver.server.worker.AgentWorker
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.BufferedReader
-import java.io.BufferedWriter
-import java.io.InputStreamReader
-import java.io.OutputStreamWriter
 import java.net.Socket
 import java.util.concurrent.atomic.AtomicBoolean
 
-class Agent(socket: Socket, val id: Int, private val worker : AgentWorker) {
-    private val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
-    private val writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
+class Agent(private val socket: Socket, val id: Int, private val worker : AgentWorker) {
     private var connected = AtomicBoolean()
 
      fun run()  {
@@ -31,13 +28,10 @@ class Agent(socket: Socket, val id: Int, private val worker : AgentWorker) {
          }
     }
 
-     fun read() : String {
-        return reader.readLine()
-    }
+     private fun read() : String = socket.getInputStream().bufferedReader().use(BufferedReader::readText)
+
     fun write(command: Command) {
-        writer.write(command.toString())
-        writer.newLine()
-        writer.flush()
+        socket.getOutputStream().bufferedWriter().use{out -> out.write(command.cmd)}
     }
 
 

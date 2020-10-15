@@ -3,13 +3,13 @@ package com.tobias.kposhserver.server.worker
 import com.tobias.kposhserver.server.Agent
 import com.tobias.kposhserver.server.command.Command
 import com.tobias.kposhserver.server.command.CommandType
-import java.lang.IllegalArgumentException
 import java.util.concurrent.BlockingQueue
 
 class AgentWorker(private val queue: BlockingQueue<Command>) : Runnable {
 
     @Synchronized
     fun process(cmd: String, agent: Agent) {
+        println("cmd: $cmd")
         queue.put(parseCommand(cmd, agent))
     }
 
